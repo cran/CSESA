@@ -94,6 +94,9 @@ WGS <- function(file) {
     # loading the database
     db <- system.file("primerDB", package = "CSESA")
     db <- file.path(db, "primers")
+    db2 <- system.file("primerB2DB", package = "CSESA")
+    db2 <- file.path(db2, "primerB2.fasta")
+    
     blastn <- Sys.which("blastn")
     
     if (all(blastn == "")) {
@@ -126,13 +129,13 @@ WGS <- function(file) {
     config.primerB1 = result.table[which(result.table$Subject_id == "locusB_primer_F" & result.table$Align_length == 25), ]
     seq1 <- NA
     seq2 <- NA
+    # primer A
     if (nrow(config.primerA1) == 1 && nrow(config.primerA2) == 1 && config.primerA1$Query_id == config.primerA2$Query_id) {
         id <- as.character(config.primerA1$Query_id)
         locus.primerA1 = config.primerA1$Query_start
         locus.primerA2 = config.primerA2$Query_start
         seq <- ""
         idx <- 1
-        # print(str(names(data)))
         for (tn in names(data)) {
             if (startsWith(tn, id)) {
                 seq <- as.character(unlist(data[1, ]))
@@ -142,9 +145,18 @@ WGS <- function(file) {
         }
         seq1 <- substr(seq, min(locus.primerA1, locus.primerA2), max(locus.primerA1, locus.primerA2))
     }
+    # primer B
     if (nrow(config.primerB1) == 1) {
         id = as.character(config.primerB1$Query_id)
         locus.primerB1 = config.primerB1$Query_start
+        
+        # find the primerB2
+        system(paste(blastn, "-db", db2, "-query", file, "-out", outfile, "-outfmt 10", "-task blastn-short"), ignore.stdout = FALSE, ignore.stderr = FALSE)
+        result.table <- read.table(outfile, sep=",", quote = "")
+        colnames(result.table) <- c("Query_id",  "Subject_id", "Perc_ident",
+                                    "Align_length", "Mismatches", "Gap_openings", "Query_start", "Query_end",
+                                    "S_start", "S_end", "E", "Bits")
+        
         seq <- ""
         idx <- 1
         for (tn in names(data)) {
@@ -154,7 +166,20 @@ WGS <- function(file) {
             }
             idx <- idx + 1
         }
-        seq2 <- substr(seq, locus.primerB1 - 3000, locus.primerB1 + 3000)
+        if (nrow(result.table) >= 1) {
+            config.primerB2 = result.table[1, ]
+            locus.primerB2 = config.primerB2$Query_start
+            # If the position of primerB2 is in the range [locus.primerB1 - 3000, locus.primerB1 + 3000]
+            if (locus.primerB2 >= locus.primerB1 - 3000 && locus.primerB2 <= locus.primerB1 + 3000) {
+                seq2 <- substr(seq, min(locus.primerB1, locus.primerB2), max(locus.primerB1, locus.primerB2))
+            }
+            else {
+                seq2 <- substr(seq, locus.primerB1 - 3000, locus.primerB1 + 3000)
+            }
+        }
+        else {
+            seq2 <- substr(seq, locus.primerB1 - 3000, locus.primerB1 + 3000)
+        }
     }
     return (list(seq1 = seq1, seq2 = seq2))
 }
@@ -279,8 +304,14 @@ GetStr <- function(csesa) {
         stop("The csesa object should be set!")
     }
     
-    str <- paste("The newly incorporated spacer in the first CRISPR sequence: ", csesa$spacer1, "\n", sep = "")
-    str <- paste(str, "The newly incorporated spacer in the second CRISPR sequence: ", csesa$spacer2, "\n", sep = "")
+    if (is.na(csesa$spacer1))
+        str <- "The newly incorporated spacer of the first CRISPR sequence is not available for prediction.\n"
+    else
+        str <- paste("The newly incorporated spacer in the first CRISPR sequence: ", csesa$spacer1, "\n", sep = "")
+    if (is.na(csesa$spacer2))
+        str <- paste0(str, "The newly incorporated spacer of the second CRISPR sequence is not available for prediction.\n")
+    else
+        str <- paste(str, "The newly incorporated spacer in the second CRISPR sequence: ", csesa$spacer2, "\n", sep = "")
     
     if (is.na(csesa$spacer1) || is.na(csesa$spacer2)) {
         result <- ""

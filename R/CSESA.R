@@ -88,7 +88,7 @@ PCR <- function(seq1, seq2, out.file) {
 WGS <- function(file) {
     path <- Sys.which("blastn")
     if (all(path == "")) {
-        stop("Blast is not exist!")
+        stop("Blast does not exist!")
     }
     
     # loading the database
@@ -198,8 +198,8 @@ GetAllNewSpacers <- function(molecular.seq = NULL) {
     molecular.seq.rev <- GetReverseComplement(molecular.seq)
     
     # handle the cases specific to Typhi
-    typhi <- "ACGGCTATCCTTGTTGACGTGGGGAATACTGCTACACGCAAAAATTCCAGTCGTTGGCGCA"
-    if (endsWith(molecular.seq, typhi) || endsWith(molecular.seq.rev, typhi))
+    typhi <- "ACGGCTATCCTTGTTGACGTGGGGAATACTGCTACACGCAAAAATTCCAGTCGTTGGCGCACGGTTTATCCCCGCTGGCGCGGGGAACAC"
+    if(grepl(typhi,molecular.seq) || grepl(typhi,molecular.seq.rev))
         return (c("EntB0var1"))
     
     new.spacer <- GetNewSpacerCode(molecular.seq)
@@ -340,7 +340,7 @@ ReadInFile <- function(file.name) {
     if (is.null(file.name) || is.na(file.name))
         return (NA)
     if (file.exists(file.name) == FALSE) {
-        stop(paste0(file.name, " is not existed!"))
+        stop(paste0(file.name, " does not existed!"))
     }
     data <- scan(file.name, what = "", quiet = TRUE)
     if (substring(data[1], 1, 1) == '>')

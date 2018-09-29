@@ -1,6 +1,6 @@
-82a54f1114b14c49807fd2270cbad00d *DESCRIPTION
+23ff96845c3cf887e48b031551a076ef *DESCRIPTION
 1a4348a57d0aa2c239398b8632229e7d *NAMESPACE
-49a0c2d1382fea792130254497b72df6 *R/CSESA.R
+c968f634314fd4be0d3537700fedb324 *R/CSESA.R
 66375dd69de5063f78dd1ab5cdf57860 *inst/extdata/Salmonella_whole_genome_assembly.fasta
 b1bda638daa1295411e5dc7d4e5e7985 *inst/extdata/sequence_CRIPSR1.fasta
 ec6598f65049cb3790a7866a6b02cbbf *inst/extdata/sequence_CRIPSR2.fasta
@@ -24,4 +24,4 @@ ca07a2c90542838df679f23a96d6dcc1 *man/PCR.Rd
 a38e9a27bdb733676574d00833920f90 *man/ReadInFile.Rd
 d8e2f34862aa5d4b8276f728eb051bd1 *man/WGS.Rd
 4e75351c5424b7a2683609d6c0ec5b8d *tests/testthat.R
-c1a9dbc7c23abd1fd96cdf0bb8f08044 *tests/testthat/test-CSESA.R
+f302c856339de10bce05afa16268e1b7 *tests/testthat/test-CSESA.R

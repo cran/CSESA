@@ -1,6 +1,6 @@
-23ff96845c3cf887e48b031551a076ef *DESCRIPTION
+6cb5dfd69a34e525a1a4e11e9dea5a3f *DESCRIPTION
 1a4348a57d0aa2c239398b8632229e7d *NAMESPACE
-c968f634314fd4be0d3537700fedb324 *R/CSESA.R
+e34c57df0450637f0e82b44255c54fdd *R/CSESA.R
 66375dd69de5063f78dd1ab5cdf57860 *inst/extdata/Salmonella_whole_genome_assembly.fasta
 b1bda638daa1295411e5dc7d4e5e7985 *inst/extdata/sequence_CRIPSR1.fasta
 ec6598f65049cb3790a7866a6b02cbbf *inst/extdata/sequence_CRIPSR2.fasta

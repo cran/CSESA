@@ -6,25 +6,25 @@
 #' @param in.file2 The second input file (optional), the default value is NULL.
 #' @param out.file Into which results will be saved if this value is set. Otherwise results will be displayed on the screen.
 #' @param method  The method to handle the input file(s), which can be set as "PCR" or "WGS". Choose "PCR" if the CRISPR sequence(s) from PCR amplification is entered, and choose "WGS" when entering the whole genome assembly of a Salmonella isolate.
-#' 
+#'
 #' @note If you use the "WGS" method, please make sure you have installed the BLAST software and included it within the working path.
 #'
 #' @examples
-#'   CSESA(system.file("extdata", "sequence_CRIPSR1.fasta", package = "CSESA"), 
+#'   CSESA(system.file("extdata", "sequence_CRIPSR1.fasta", package = "CSESA"),
 #'   system.file("extdata", "sequence_CRIPSR2.fasta", package = "CSESA"), method = "PCR")
 #'   CSESA(system.file("extdata", "sequence_CRIPSR1.fasta", package = "CSESA"), method = "PCR")
-#'   CSESA(system.file("extdata", "Salmonella_whole_genome_assembly.fasta", 
+#'   CSESA(system.file("extdata", "Salmonella_whole_genome_assembly.fasta",
 #'   package = "CSESA"), method = "WGS")
 #' @importFrom utils read.table
 #' @import Biostrings
-#' 
+#'
 #' @export
-#' 
+#'
 CSESA <- function(in.file1 = NULL, in.file2 = NULL, out.file = NULL, method = c("PCR", "WGS")) {
     tryCatch({
         if (is.null(in.file1) && is.null(in.file2)) {
             stop("No such file(s)!")
-        } 
+        }
         method <- toupper(method)
         method <- match.arg(method)
         if (method == "PCR") {
@@ -60,16 +60,16 @@ CSESA <- function(in.file1 = NULL, in.file2 = NULL, out.file = NULL, method = c(
 #' @param seq1 The first DNA sequence.
 #' @param seq2 The second DNA sequence.
 #' @param out.file Into which results will be saved if this value is set. Otherwise results will be displayed on the screen.
-#' 
+#'
 PCR <- function(seq1, seq2, out.file) {
     csesa.result <- list()
-    
+
     csesa.result$spacer1 <- GetAllNewSpacers(seq1)
     csesa.result$spacer2 <- GetAllNewSpacers(seq2)
-    
+
     csesa.result$serotype <- FindSerotype(csesa.result$spacer1, csesa.result$spacer2)
     class(csesa.result) <- "CSESA"
-    
+
     if (is.null(out.file)) {
         cat(GetStr(csesa.result))
     }
@@ -82,7 +82,7 @@ PCR <- function(seq1, seq2, out.file) {
 #' Find the serotype based on the analysis of the new spacers.
 #'
 #' @param file The input fasta file.
-#' 
+#'
 #' @return The two DNA molecular sequence.
 #'
 WGS <- function(file) {
@@ -90,20 +90,20 @@ WGS <- function(file) {
     if (all(path == "")) {
         stop("Blast does not exist!")
     }
-    
+
     # loading the database
     db <- system.file("primerDB", package = "CSESA")
     db <- file.path(db, "primers")
     db2 <- system.file("primerB2DB", package = "CSESA")
     db2 <- file.path(db2, "primerB2.fasta")
-    
+
     blastn <- Sys.which("blastn")
-    
+
     if (all(blastn == "")) {
         stop("The BLAST software has not been employed. Please install it first and check it within the working path.")
     }
     blastn = blastn[which(blastn != "")[1]]
-    
+
     tmpwd <- tempdir()
     curwd <- getwd()
     tmp.prefix <- basename(tempfile(tmpdir = tmpwd))
@@ -112,18 +112,24 @@ WGS <- function(file) {
         setwd(curwd)
     })
     setwd(tmpwd)
-    
+
     outfile <- paste(tmp.prefix, ".out", sep = "")
-    data <- readDNAStringSet(file)
-    
-    # db = "E:/code/CSESA/inst/primerDB/primers"
-    system(paste(blastn, "-db", db, "-query", file, "-out", outfile, "-outfmt 10", "-task blastn-short"), ignore.stdout = FALSE, ignore.stderr = FALSE)
-    
+    infile <- paste(tmp.prefix, ".in", sep = "")
+
+    text <- readLines(file)
+    text <- gsub(pattern = " ", replacement = "_", x = text)
+    text <- gsub(pattern = ",|#", replacement = "", x = text)
+    writeLines(text, con = infile)
+
+    data <- readDNAStringSet(infile)
+
+    system(paste(blastn, "-db", db, "-query", infile, "-out", outfile, "-outfmt 10", "-task blastn-short"), ignore.stdout = FALSE, ignore.stderr = FALSE)
+
     result.table <- read.table(outfile, sep=",", quote = "")
     colnames(result.table) <- c("Query_id",  "Subject_id", "Perc_ident",
                                 "Align_length", "Mismatches", "Gap_openings", "Query_start", "Query_end",
                                 "S_start", "S_end", "E", "Bits" )
-    
+
     config.primerA2 = result.table[which(result.table$Subject_id == "locusA_primer_R" & result.table$Align_length == 23), ]
     config.primerA1 = result.table[which(result.table$Subject_id == "locusA_primer_F" & result.table$Align_length == 20), ]
     config.primerB1 = result.table[which(result.table$Subject_id == "locusB_primer_F" & result.table$Align_length == 25), ]
@@ -138,7 +144,7 @@ WGS <- function(file) {
         idx <- 1
         for (tn in names(data)) {
             if (startsWith(tn, id)) {
-                seq <- as.character(unlist(data[1, ]))
+                seq <- as.character(unlist(data[idx, ]))
                 break
             }
             idx <- idx + 1
@@ -149,19 +155,19 @@ WGS <- function(file) {
     if (nrow(config.primerB1) == 1) {
         id = as.character(config.primerB1$Query_id)
         locus.primerB1 = config.primerB1$Query_start
-        
+
         # find the primerB2
-        system(paste(blastn, "-db", db2, "-query", file, "-out", outfile, "-outfmt 10", "-task blastn-short"), ignore.stdout = FALSE, ignore.stderr = FALSE)
+        system(paste(blastn, "-db", db2, "-query", infile, "-out", outfile, "-outfmt 10", "-task blastn-short"), ignore.stdout = FALSE, ignore.stderr = FALSE)
         result.table <- read.table(outfile, sep=",", quote = "")
         colnames(result.table) <- c("Query_id",  "Subject_id", "Perc_ident",
                                     "Align_length", "Mismatches", "Gap_openings", "Query_start", "Query_end",
                                     "S_start", "S_end", "E", "Bits")
-        
+
         seq <- ""
         idx <- 1
         for (tn in names(data)) {
             if (startsWith(tn, id)) {
-                seq <- as.character(unlist(data[1, ]))
+                seq <- as.character(unlist(data[idx, ]))
                 break
             }
             idx <- idx + 1
@@ -193,15 +199,15 @@ WGS <- function(file) {
 #' @note If there doesn't exist any new spacer, the function would return NA.
 #'
 GetAllNewSpacers <- function(molecular.seq = NULL) {
-    if (is.null(molecular.seq) || is.na(molecular.seq) || molecular.seq == "") 
+    if (is.null(molecular.seq) || is.na(molecular.seq) || molecular.seq == "")
         return (NA)
     molecular.seq.rev <- GetReverseComplement(molecular.seq)
-    
+
     # handle the cases specific to Typhi
     typhi <- "ACGGCTATCCTTGTTGACGTGGGGAATACTGCTACACGCAAAAATTCCAGTCGTTGGCGCACGGTTTATCCCCGCTGGCGCGGGGAACAC"
     if(grepl(typhi,molecular.seq) || grepl(typhi,molecular.seq.rev))
         return (c("EntB0var1"))
-    
+
     new.spacer <- GetNewSpacerCode(molecular.seq)
     new.spacer.rev <- GetNewSpacerCode(molecular.seq.rev)
     new.spacer.arr <- character()
@@ -220,7 +226,7 @@ GetAllNewSpacers <- function(molecular.seq = NULL) {
 #'
 #' @param csesa1 The new spacer of the first sequence.
 #' @param csesa2 The new spacer of the second sequence.
-#' 
+#'
 #' @return The data frame which represents the serotype.
 #'
 FindSerotype <- function(csesa1 = NA, csesa2 = NA) {
@@ -238,7 +244,7 @@ FindSerotype <- function(csesa1 = NA, csesa2 = NA) {
             serotype <- unique(serotype)
     }
     else {
-        serotype <- subset(mapping.table, is.element(V1, csesa1) & is.element(V2, csesa2) | 
+        serotype <- subset(mapping.table, is.element(V1, csesa1) & is.element(V2, csesa2) |
                                is.element(V1, csesa2) & is.element(V2, csesa1), select = c(V3, V4))
     }
     return (serotype)
@@ -303,7 +309,7 @@ GetStr <- function(csesa) {
     if (is.null(csesa)) {
         stop("The csesa object should be set!")
     }
-    
+
     if (is.na(csesa$spacer1))
         str <- "The newly incorporated spacer of the first CRISPR sequence is not available for prediction.\n"
     else
@@ -312,12 +318,12 @@ GetStr <- function(csesa) {
         str <- paste0(str, "The newly incorporated spacer of the second CRISPR sequence is not available for prediction.\n")
     else
         str <- paste(str, "The newly incorporated spacer in the second CRISPR sequence: ", csesa$spacer2, "\n", sep = "")
-    
+
     if (is.na(csesa$spacer1) || is.na(csesa$spacer2)) {
         result <- ""
         if (is.atomic(csesa$serotype))
             result <- csesa$serotype
-        else 
+        else
             result <- paste(csesa$serotype[, 1], collapse = "] [")
         result <- paste("Predicted serotype(s): [", result, sep = "")
         str <- paste(str, result, "]", "\n", sep = "")
